@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Set Game</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+        <script src="https://cdn.socket.io/socket.io-1.3.4.js"></script>
+    
+        
+        
+        <script>
+        
+            //On load:
+             $(document).ready(function()
+            {
+                var images = [];
+                var selectedImages = [];
+                var myid;
+                
+                preloadImages();
+                
+                
+                 
+                //loadGrid([1,2,3,43,1,23,14,80,15,4,4,3]);
+
+                //Given
+                function nullFcn(result) { }
+
+                //Given
+                 function doAjaxCall(method, cmd, params, fcn) 
+                 {
+                   $.ajax
+                   (
+                       "http://localhost:3000/setgameserver/" + cmd,
+                       {
+                           type: method,
+                           processData: true,
+                           data: params,
+                           dataType: "jsonp",
+                           success: function (result) { fcn(result) },
+                           error: function (jqXHR, textStatus, errorThrown) 
+                           {
+                               alert("Error: " + jqXHR.responseText);
+                               alert("Error: " + textStatus);
+                               alert("Error: " + errorThrown);
+                           }
+                       }
+                   );
+                 }
+
+                 //Working
+                 function preloadImages()
+                 {
+                     for (var counter = 1; counter < 82; counter++) //81 is the number of images inside the images folder
+                     {
+                         var imageNumber =  counter;
+                         if (counter < 10)
+                           imageNumber = "0" + imageNumber;
+
+                         var imageObject = '<img src = "images/' + imageNumber + '.gif">';
+                         /*var imageObject = document.createElement("IMG");
+                         imageObject.src = 'images/' + imageNumber + '.gif';*/
+
+
+                         images.push(imageObject);  
+                     }
+                 }
+                 
+                 //Working
+                 function loadGrid(intArray)
+                 {
+                     $("#cardGrid").empty();
+                     for (var counter = 0; counter < intArray.length; counter++)
+                     {
+                         //Displays cards depending on the value at each position of intArray
+
+                         if (intArray[counter] > 0 || intArray[counter] < 82)
+                         {
+                           if (counter%3 === 0)
+                           {
+                               if (counter !== 0)
+                                   $("#cardGrid").append("</tr>");
+
+                               $("#cardGrid").append("<tr>");
+                           }  
+                           
+                           var appendElement = "<td>" + images[intArray[counter]] + "</td>";
+                           $("#cardGrid").append(appendElement);
+                           /*$("#cardGrid").append("<td>");                 
+                           $("#cardGrid").append(images[intArray[counter]]);
+                           $("#cardGrid").append("</td>");*/
+
+
+                         }
+
+
+
+
+                     }
+                 }
+                 
+                 //Working
+                 $("#cardGrid").on("click","td",function()
+                 {
+                     
+                     var isSelected = false;
+                     //Check what card it is
+                     var imageSrc = $(this).children('img').attr('src');
+                     var imageNumberString = imageSrc.substring(7,9);
+                     if (imageNumberString.charAt(0) === "0")
+                         imageNumberString = imageNumberString.charAt(1);
+                     imageNumber = parseInt(imageNumberString);
+                     //alert(imageNumber);
+                     for (var counter = 0; counter < selectedImages.length; counter++)
+                     {
+                         if (selectedImages[counter] === imageNumber) //if belongs to array, deselects image
+                         {
+                             //Deselect image (removes border)
+                             $( this ).children('img').removeClass( "selectedBorder" );
+                             selectedImages.splice(counter,1);
+                             isSelected = true;
+                         }
+                     }
+                     
+                     if (isSelected === false)
+                     {
+                         if (selectedImages.length < 3) //checks if there is 3 cards already selected, if not select
+                         {
+                             //Selects image (adds border)
+                             $( this ).children('img').addClass( "selectedBorder" );
+                             selectedImages.push(imageNumber);
+                         }
+                         else
+                         {
+                             alert("Error! Only up to 3 cards can be selected at a time.");
+                         }
+                     }
+
+                     console.log(imageNumber);
+            
+                 });
+                 
+                 //Testing required:
+                 $("#loginButton").on("click",function()
+                 {
+                     removeSelection();
+                     var loginName = $("#loginInput").val();
+                     
+                     doAjaxCall("GET",'login',{loginName: loginName},function(id)
+                     {
+                         myid = id;
+                         $("#loggedName").text (loginName);
+                     });
+                     
+                     doAjaxCall("GET",'loginname',{id:myid},nullFcn);
+                     
+                 });
+                 
+                 
+                 //Testing required:
+                 $("#setButton").on("click",function()
+                 {
+                     doAjaxCall("GET","submitset",{id:myid, cards:selectedImages} , nullFcn);
+                     removeSelection();
+                 });
+                 
+                 $("#addRowButton").on("click",function()
+                 {
+                    doAjaxCall("GET", "addrow", { id: myid }, nullFcn); 
+                 });
+                 
+                 $("#shuffleButton").on("click",function()
+                 {
+                    doAjaxCall("GET", "shuffle", { id: myid }, nullFcn); 
+                 });
+                 
+                 $("#endButton").on("click",function()
+                 {
+                    doAjaxCall("GET", "endgame", { id: myid }, nullFcn); 
+                 });
+                 
+                 //Working
+                 function removeSelection()
+                 {
+                     $("#cardGrid").children('td').each(function()
+                     {
+                         $(this).children('img').each(function()
+                         {
+                            $(this).removeClass("selectedBorder"); 
+                            selectedImages = [];
+                         });
+                     });
+                 }
+                 
+                 function loadStatus(players)
+                 {
+                     $('#scoreTable').empty()
+                     var appendStart = "<tr><td> <h3> Players </h3> </td> </tr>" +
+                    "<tr>" +
+                               " <td>Name</td><td>Score</td><td>R</td><td>S</td><td>E</td>"+
+                    "<tr>";
+                    $("#scoreTable").append(appendStart);
+                     for (var counter = 0; counter < players.length; counter++)
+                     {
+                        var row = "";
+                        var shuffle = "";
+                        var end = "";
+                        
+                        if (players[counter].row === true)
+                            row = "*";
+                        if (players[counter].shuffle === true)
+                            shuffle = "*";
+                        if (players[counter].end === true)
+                            end = "*";
+                         
+                        var appendTable = "<tr> <td>" + players[counter].player + "</td> <td>" + players[counter].score + "</td> <td>" + row + "</td> <td>" + shuffle + "</td> <td>" + end + "</td> </tr>";
+                        $("#scoreTable").append(appendTable);
+                     }
+                 }
+                 
+                 var socket = io.connect('localhost:3000');
+                 socket.on('hand', function (cards) {
+                    loadGrid(cards);
+                 });
+                 socket.on('players', function (players) {
+                    loadStatus(players);
+                 });
+              
+              });
+
+            
+        </script>
+        
+        <style>
+            
+            .selectedBorder
+            {
+                border: 1px solid black;
+                outline-color:black;
+            }
+            
+            
+            #loginSection
+            {
+                top: 5%;
+                position: absolute;
+                left: 70%;
+                display: inline;
+                
+            }
+            
+            #commandsSection
+            {
+                top: 20%;
+                left: 70%;
+                position:absolute;
+                outline-style:solid;
+                border: 1px solid black;
+                outline-color:black;
+            }
+            
+            #textDiv
+            {
+                top:40%;
+                left:70%;
+                position:absolute;
+                background-color:lightseagreen;
+                resize: none;
+                overflow-y: scroll;
+                
+            }
+            
+            
+            #cardGrid
+            {
+                width:40%;
+                height:80%;
+                top: 15%;
+                left: 10%;
+                position:absolute;
+                
+            }
+            #cardGrid td
+            {
+                padding: 40px;
+            }
+            
+             #scoreTable td
+             {
+                padding: 6px;
+                width: 40px;
+            }
+
+            
+        </style>
+        
+    </head>
+    <body>
+        <div id="loginSection">
+                Username:
+		<input id="loginInput">
+		<button id="loginButton">Login</button>
+        </div>
+        <div id = "commandsSection">
+            Commands
+            <button id="setButton">Set</button>
+            <button id="addRowButton">Add Row</button>
+            <button id="shuffleButton">Shuffle</button>
+            <button id="endButton">End Game</button>
+        </div>
+        
+        <div id="textDiv">
+           
+                <table id ="scoreTable"> 
+                    <tr><td> <h3> Players </h3> </td> </tr>
+                    <tr>
+                                <td>Name</td><td>Score</td><td>R</td><td>S</td><td>E</td>
+                    <tr>
+                </table>
+
+                       
+            
+            
+        </div>
+        
+        <div id="cardGrid">
+            
+        </div>
+        
+        <div id ="nameScreen"><h1>Welcome to Set, <span id="loggedName">  </span></h1></div>
+            
+            
+        
+        
+    </body>
+</html>
