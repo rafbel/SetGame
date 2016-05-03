@@ -158,9 +158,10 @@ and open the template in the editor.
                      {
                          myid = id;
                          $("#loggedName").text (loginName);
+						 doAjaxCall("GET",'loginname',{id:myid},nullFcn);
                      });
                      
-                     doAjaxCall("GET",'loginname',{id:myid},nullFcn);
+                     
                      
                  });
                  
