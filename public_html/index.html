@@ -21,6 +21,9 @@ and open the template in the editor.
             //On load:
              $(document).ready(function()
             {
+                //var host = "popcave1.cse.lehigh.edu:3000";
+                var host = "localhost:3000";
+                var server = "http://" + host + "/setgameserver/";
                 var images = [];
                 var selectedImages = [];
                 var myid;
@@ -39,7 +42,7 @@ and open the template in the editor.
                  {
                    $.ajax
                    (
-                       "http://localhost:3000/setgameserver/" + cmd,
+                       server + cmd,
                        {
                            type: method,
                            processData: true,
@@ -227,7 +230,7 @@ and open the template in the editor.
                      }
                  }
                  
-                 var socket = io.connect('localhost:3000');
+                 var socket = io.connect(host);
                  socket.on('hand', function (cards) {
                     loadGrid(cards);
                  });
